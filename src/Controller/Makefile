@@ -28,11 +28,11 @@ CC          = gcc
 endif
 
 ifeq ($(OSTYPE),linux)
-CFLAGS      = -fPIC -Wall -Wno-stringop-truncation
+CFLAGS      = -fPIC -Wall -Wno-stringop-truncation -D TCP_IP_SOCKET
 INCLUDE     = -I$(WEBOTS_PATH)/include/controller/c -I$(WEBOTS_PATH)/include
 LD_FLAGS    = -shared -Wl,-soname,libController.so
 SHARED_LIBS = -lm -lpthread -ldl -lrt
-TARGET      = $(WEBOTS_CONTROLLER_LIB_PATH)/libController.so
+TARGET      = ../../lib/controller/libController.so
 endif
 
 ifeq ($(OSTYPE),windows)

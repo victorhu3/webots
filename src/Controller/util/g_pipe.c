@@ -24,6 +24,12 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/un.h>
+
+#ifdef TCP_IP_SOCKET
+  #include <netinet/in.h>
+  #include <arpa/inet.h>
+#endif
+
 #endif  // _WIN32
 
 #include <errno.h>
@@ -59,13 +65,34 @@ GPipe *g_pipe_new(const char *name) {  // used by Webots 7
     }
   }
 #else
+
+  #ifdef TCP_IP_SOCKET
+  p->handle = socket(AF_INET, SOCK_STREAM, 0);
+  #else
   p->handle = socket(PF_UNIX, SOCK_STREAM, 0);
+  #endif
+
   if (p->handle < 0) {
     fprintf(stderr, "socket() failed\n");
     // cppcheck-suppress memleak ; otherwise cppcheck shows a false positive for p->handle
     free(p);
     return NULL;
   }
+  
+  #ifdef TCP_IP_SOCKET
+  struct sockaddr_in address;
+  address.sin_family = AF_INET;
+  address.sin_port = htons(8000);
+  inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
+  
+  if(connect(p->handle, (struct sockaddr *)&address, sizeof(struct sockaddr_in)) != 0) {
+    fprintf(stderr, "socket connect() failed for %s, errno=%d\n", name, errno);
+    close(p->handle);
+    free(p);
+    return NULL;
+  }
+
+  #else
   struct sockaddr_un address;
   memset(&address, 0, sizeof(struct sockaddr_un));
   address.sun_family = AF_UNIX;
@@ -76,6 +103,7 @@ GPipe *g_pipe_new(const char *name) {  // used by Webots 7
     free(p);
     return NULL;
   }
+  #endif
 #endif
   g_pipe_send(p, (const char *)&robot_id, sizeof(int));
   if (robot_id == 0) {

@@ -18,8 +18,13 @@
 #include <QtCore/QList>
 #include "WbSimulationWorld.hpp"  // TODO: should we rename WbSimulationWorld to WbSimulatedWorld ?
 
+#ifdef TCP_IP_SOCKET
+class QTcpServer;
+class QTcpSocket;
+#else
 class QLocalServer;
 class QLocalSocket;
+#endif
 class WbController;
 
 class WbControlledWorld : public WbSimulationWorld {
@@ -56,11 +61,19 @@ protected:
   void setUpControllerForNewRobot(WbRobot *robot) override;
 
 private:
+#ifdef TCP_IP_SOCKET
+  void startControllerFromSocket(WbRobot *robot, QTcpSocket *socket);
+#else
   void startControllerFromSocket(WbRobot *robot, QLocalSocket *socket);
+#endif
   void updateRobotController(WbRobot *robot);
   void handleRobotRemoval(WbBaseNode *node);
 
+#ifdef TCP_IP_SOCKET
+  QTcpServer *mServer;
+#else
   QLocalServer *mServer;
+#endif
   QList<WbController *> mControllers;
   QList<WbController *> mWaitingControllers;  // controllers inserted in previous step and waiting to be started in current step
   QList<WbController *> mNewControllers;      // controllers inserted in current step mode and waiting next step to start

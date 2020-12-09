@@ -21,7 +21,12 @@
 #include "WbFileUtil.hpp"
 #include "WbRobot.hpp"
 
+#ifdef TCP_IP_SOCKET
+class QTcpSocket;
+#else
 class QLocalSocket;
+#endif
+
 class QProcessEnvironment;
 
 class WbController : public QObject {
@@ -37,8 +42,11 @@ public:
   // start the controller
   // it never fails: the void controller is started as a fallback
   void start();
-
+#ifdef TCP_IP_SOCKET
+  void setSocket(QTcpSocket *socket);
+#else
   void setSocket(QLocalSocket *socket);
+#endif
   void writeAnswer(bool immediateAnswer = false);
   void writePendingImmediateAnswer() {
     if (mHasPendingImmediateAnswer)
@@ -87,7 +95,11 @@ private:
   QString mMatlabCommand;
   QString mMatlabOptions;
   QProcess *mProcess;
+#ifdef TCP_IP_SOCKET
+  QTcpSocket *mSocket;
+#else
   QLocalSocket *mSocket;
+#endif
   QByteArray mRequest;
   QTextDecoder mStdout;
   QTextDecoder mStderr;

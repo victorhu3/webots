@@ -25,8 +25,14 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDataStream>
 #include <QtCore/QThread>
+
+#ifdef TCP_IP_SOCKET
+#include <QtNetwork/QTcpServer>
+#include <QtNetwork/QTcpSocket>
+#else
 #include <QtNetwork/QLocalServer>
 #include <QtNetwork/QLocalSocket>
+#endif
 
 #include <cassert>
 
@@ -52,26 +58,48 @@ WbControlledWorld::WbControlledWorld(WbProtoList *protos, WbTokenizer *tokenizer
   WbRandom::setSeed(seed);
 
   // recover from a crash, when the previous server instance has not been cleaned up
+#ifdef TCP_IP_SOCKET
+  //bool success = QTcpServer::removeServer(serverName);
+  bool success;
+#else
   bool success = QLocalServer::removeServer(serverName);
   if (!success) {
     WbLog::error(tr("Cannot cleanup the local server (server name = \"%1\").").arg(serverName));
     return;
   }
+#endif
 
+#ifdef TCP_IP_SOCKET
+  mServer = new QTcpServer();
+  connect(mServer, &QTcpServer::newConnection, this, &WbControlledWorld::addControllerConnection);
+#else
   mServer = new QLocalServer();
   connect(mServer, &QLocalServer::newConnection, this, &WbControlledWorld::addControllerConnection);
+#endif
 
+#ifdef TCP_IP_SOCKET
+  success = mServer->listen(QHostAddress::Any, 8000);
+#else
   success = mServer->listen(serverName);
+#endif
   if (!success) {
     WbLog::error(tr("Cannot listen the local server (server name = \"%1\"): %2").arg(serverName).arg(mServer->errorString()));
     return;
   }
   mNeedToYield = false;
+#ifdef TCP_IP_SOCKET
+  qputenv("WEBOTS_SERVER", "NONE");
+#else
   qputenv("WEBOTS_SERVER", mServer->fullServerName().toUtf8());
+#endif
   QFile file(WbStandardPaths::webotsTmpPath() + "WEBOTS_SERVER");
   if (file.open(QIODevice::WriteOnly)) {
     QTextStream stream(&file);
+#ifdef TCP_IP_SOCKET
+    stream << "NONE" << '\n';
+#else
     stream << mServer->fullServerName().toUtf8() << '\n';
+#endif
     file.close();
   }
   foreach (WbRobot *const robot, robots()) {
@@ -128,7 +156,12 @@ void WbControlledWorld::startController(WbRobot *robot) {
   startControllerFromSocket(robot, NULL);
 }
 
+#ifdef TCP_IP_SOCKET
+void WbControlledWorld::startControllerFromSocket(WbRobot *robot, QTcpSocket *socket) {
+#else
 void WbControlledWorld::startControllerFromSocket(WbRobot *robot, QLocalSocket *socket) {
+#endif
+
   if (robot->controllerName().isEmpty() || (socket == NULL && robot->controllerName() == "<extern>")) {
     if (robot->controllerName() == "<extern>")
       mRobotsWaitingExternController.append(robot);
@@ -193,7 +226,11 @@ void WbControlledWorld::deleteController(WbController *controller) {
 }
 
 void WbControlledWorld::addControllerConnection() {
+#ifdef TCP_IP_SOCKET
+  QTcpSocket *socket = mServer->nextPendingConnection();
+#else
   QLocalSocket *socket = mServer->nextPendingConnection();
+#endif
   int robotId = 0;
   int n, i = 0;
   while ((n = socket->read((char *)&robotId, sizeof(robotId) - i)) != (int)sizeof(robotId) - i) {

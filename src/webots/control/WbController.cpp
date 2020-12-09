@@ -40,7 +40,11 @@
 #include <QtCore/QDir>
 #include <QtCore/QProcess>
 #include <QtCore/QProcessEnvironment>
+#ifdef TCP_IP_SOCKET
+#include <QtNetwork/QTcpSocket>
+#else
 #include <QtNetwork/QLocalSocket>
+#endif
 #include <cassert>
 #include "../../Controller/api/messages.h"
 
@@ -851,7 +855,11 @@ void WbController::copyBinaryAndDependencies(const QString &filename) {
 #endif
 }
 
+#ifdef TCP_IP_SOCKET
+void WbController::setSocket(QTcpSocket *socket) {
+#else
 void WbController::setSocket(QLocalSocket *socket) {
+#endif
   // associate controller and socket
   mSocket = socket;
 
