@@ -29,12 +29,16 @@ extern "C" {
 struct _GPipe {
   int fd[2];
 #ifdef _WIN32
+  #ifdef TCP_IP_SOCKET
+  SOCKET handle;
+  #else
   HANDLE handle;
   char *buffer;
   int pointer;
   int read;
   int buffer_size;
   int fd_local[2];  // for the local pipe
+  #endif
 #else
   int handle;
 #endif

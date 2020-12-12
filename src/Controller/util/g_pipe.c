@@ -20,6 +20,10 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <windows.h>
+
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include<iphlpapi.h>
 #else
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -46,6 +50,51 @@ GPipe *g_pipe_new(const char *name) {  // used by Webots 7
     sscanf(WEBOTS_ROBOT_ID, "%d", &robot_id);
   GPipe *p = malloc(sizeof(GPipe));
 #ifdef _WIN32
+  #ifdef TCP_IP_SOCKET
+  WSADATA wsaData;
+
+  int ret;
+  ret = WSAStartup(MAKEWORD(2,2), &wsaData);
+  if(ret != 0) {
+    fprintf(stderr, "WSAStartup failed: %d\n", ret);
+    free(p);
+    return NULL;
+  }
+  
+  struct addrinfo *result = NULL, *ptr = NULL, hints;
+  ZeroMemory(&hints, sizeof(hints));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+  hints.ai_protocol = IPPROTO_TCP;
+  ret = getaddrinfo("127.0.0.1", 8000, &hints, &result);
+  if(ret != 0) {
+    fprintf(stderr, "WSAStartup failed: %d\n", ret);
+    free(p);
+    return NULL;
+  }
+
+  p->handle = INVALID_SOCKET;
+  ptr = result;
+  p->handle = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+  if(p->handle == INVALID_SOCKET) {
+
+    fprintf(stderr, "Error at socket(): %ld\n", WSAGetLastError());
+    freeaddrinfo(result);
+    WSACleanup();
+    free(p);
+    return NULL;
+  }
+
+  ret = connect(p->handle, ptr->ai_addr, (int)ptr->ai_addrlen);
+  if(ret == SOCKET_ERROR) {
+    fprintf(stderr, "Cannot connect to server!\n");
+    closesocket(ConnectSocket);
+    freeaddrinfo(result);
+    WSACleanup();
+    free(p);
+    return NULL;
+  }
+  #else
   p->fd[0] = 0;
   p->fd[1] = 0;
   while (1) {
@@ -64,6 +113,7 @@ GPipe *g_pipe_new(const char *name) {  // used by Webots 7
       return NULL;
     }
   }
+  #endif
 #else
 
   #ifdef TCP_IP_SOCKET
@@ -123,7 +173,12 @@ void g_pipe_delete(GPipe *p) {
     return;
   if (p->handle)
 #ifdef _WIN32
+  #ifdef TCP_IP_SOCKET
+    closesocket(p->handle);
+    WSACleanup();
+  #else
     CloseHandle(p->handle);
+  #endif
 #else
     close(p->handle);
 #endif
@@ -132,10 +187,20 @@ void g_pipe_delete(GPipe *p) {
 
 void g_pipe_send(GPipe *p, const char *data, int size) {
 #ifdef _WIN32
+  #ifdef TCP_IP_SOCKET
+  int ret = send(p->handle, data, size, 0);
+  if(ret == SOCKET_ERROR) {
+    fprinf(stderr, "send failed: %d\n", WSAGetLastError());
+    closesocket(p->handle);
+    WSACleanup();
+    exit(1);
+  }
+  #else
   assert(p->handle);
   DWORD m = 0;
   if (WriteFile(p->handle, data, size, &m, NULL) == 0)
     exit(1);
+  #endif
 #else
   int fd = p->handle;
   if (!fd)
@@ -147,6 +212,15 @@ void g_pipe_send(GPipe *p, const char *data, int size) {
 
 int g_pipe_receive(GPipe *p, char *data, int size) {
 #ifdef _WIN32
+  #ifdef TCP_IP_SOCKET
+  int ret = recv(p->handle, data, size, 0);
+  if(ret < 0) {
+    fprinf(stderr, "recv failed: %d\n", WSAGetLastError());
+    closesocket(p->handle);
+    WSACleanup();
+    exit(1);
+  }
+  #else
   DWORD nb_read = 0;
   DWORD e = ERROR_SUCCESS;
   BOOL success = false;
@@ -163,6 +237,7 @@ int g_pipe_receive(GPipe *p, char *data, int size) {
   if (e != ERROR_SUCCESS)  // broken pipe due to the crash of Webots
     exit(1);
   return (int)nb_read;
+  #endif
 #else
   int fd = p->handle;
   if (!fd)
