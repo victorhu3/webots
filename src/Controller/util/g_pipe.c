@@ -17,13 +17,17 @@
 #include "g_pipe.h"
 
 #ifdef _WIN32
+
+#ifdef TCP_IP_SOCKET
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#endif
+
 #include <assert.h>
 #include <fcntl.h>
 #include <windows.h>
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include<iphlpapi.h>
 #else
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -66,7 +70,7 @@ GPipe *g_pipe_new(const char *name) {  // used by Webots 7
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_protocol = IPPROTO_TCP;
-  ret = getaddrinfo("127.0.0.1", 8000, &hints, &result);
+  ret = getaddrinfo("127.0.0.1", "8000", &hints, &result);
   if(ret != 0) {
     fprintf(stderr, "WSAStartup failed: %d\n", ret);
     free(p);
@@ -78,7 +82,7 @@ GPipe *g_pipe_new(const char *name) {  // used by Webots 7
   p->handle = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
   if(p->handle == INVALID_SOCKET) {
 
-    fprintf(stderr, "Error at socket(): %ld\n", WSAGetLastError());
+    fprintf(stderr, "Error at socket(): %d\n", WSAGetLastError());
     freeaddrinfo(result);
     WSACleanup();
     free(p);
@@ -88,7 +92,7 @@ GPipe *g_pipe_new(const char *name) {  // used by Webots 7
   ret = connect(p->handle, ptr->ai_addr, (int)ptr->ai_addrlen);
   if(ret == SOCKET_ERROR) {
     fprintf(stderr, "Cannot connect to server!\n");
-    closesocket(ConnectSocket);
+    closesocket(p->handle);
     freeaddrinfo(result);
     WSACleanup();
     free(p);
@@ -171,7 +175,7 @@ GPipe *g_pipe_new(const char *name) {  // used by Webots 7
 void g_pipe_delete(GPipe *p) {
   if (p == NULL)
     return;
-  if (p->handle)
+  if (p->handle) {
 #ifdef _WIN32
   #ifdef TCP_IP_SOCKET
     closesocket(p->handle);
@@ -182,6 +186,7 @@ void g_pipe_delete(GPipe *p) {
 #else
     close(p->handle);
 #endif
+  }
   free(p);
 }
 
@@ -190,7 +195,7 @@ void g_pipe_send(GPipe *p, const char *data, int size) {
   #ifdef TCP_IP_SOCKET
   int ret = send(p->handle, data, size, 0);
   if(ret == SOCKET_ERROR) {
-    fprinf(stderr, "send failed: %d\n", WSAGetLastError());
+    fprintf(stderr, "send failed: %d\n", WSAGetLastError());
     closesocket(p->handle);
     WSACleanup();
     exit(1);
@@ -215,7 +220,7 @@ int g_pipe_receive(GPipe *p, char *data, int size) {
   #ifdef TCP_IP_SOCKET
   int ret = recv(p->handle, data, size, 0);
   if(ret < 0) {
-    fprinf(stderr, "recv failed: %d\n", WSAGetLastError());
+    fprintf(stderr, "recv failed: %d\n", WSAGetLastError());
     closesocket(p->handle);
     WSACleanup();
     exit(1);

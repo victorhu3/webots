@@ -78,7 +78,7 @@ WbControlledWorld::WbControlledWorld(WbProtoList *protos, WbTokenizer *tokenizer
 #endif
 
 #ifdef TCP_IP_SOCKET
-  success = mServer->listen(QHostAddress("10.0.113"), 8000);
+  success = mServer->listen(QHostAddress("127.0.0.1"), 8000);
 #else
   success = mServer->listen(serverName);
 #endif

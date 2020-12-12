@@ -39,6 +39,7 @@ ifeq ($(OSTYPE),windows)
 CFLAGS      = -Wall -mwindows -DTCP_IP_SOCKET
 INCLUDE     = -I$(WEBOTS_PATH)/include/controller/c -I$(WEBOTS_PATH)/include -I/mingw64/include
 LD_FLAGS    = -shared -mwindows --def Controller.def
+LIBRARIES   = -lws2_32
 PLATFORM    = win32
 CC          = gcc
 TARGET      = $(WEBOTS_CONTROLLER_LIB_PATH)/Controller.dll $(WEBOTS_CONTROLLER_LIB_PATH)/Controller.lib
@@ -117,7 +118,7 @@ MINGW32_OBJECTS = $(addprefix $(OBJDIR)/mingw32/, $(OBJECTS))
 
 $(WEBOTS_CONTROLLER_LIB_PATH)/Controller.dll: $(MINGW64_OBJECTS) Controller.def
 	@echo "# linking Controller.dll and libController.a"
-	@$(CC) $(LD_FLAGS) -o $@ $(addprefix $(OBJDIR)/, $(OBJECTS)) -Wl,--out-implib,$(WEBOTS_CONTROLLER_LIB_PATH)/libController.a
+	@$(CC) $(LD_FLAGS) -o $@ $(addprefix $(OBJDIR)/, $(OBJECTS)) -Wl,--out-implib,$(WEBOTS_CONTROLLER_LIB_PATH)/libController.a $(LIBRARIES) 
 ifeq ($(NO_GCC32),1)
 	@echo -e "# \033[0;33mmissing 32 bit gcc or dependencies, skipping 32 bit version of Controller.dll\033[0m"
 endif
