@@ -83,7 +83,7 @@ GPipe *g_pipe_new(const char *name) {  // used by Webots 7
   struct sockaddr_in address;
   address.sin_family = AF_INET;
   address.sin_port = htons(8000);
-  inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
+  inet_pton(AF_INET, "10.0.0.109", &address.sin_addr);
   
   if(connect(p->handle, (struct sockaddr *)&address, sizeof(struct sockaddr_in)) != 0) {
     fprintf(stderr, "socket connect() failed for %s, errno=%d\n", name, errno);

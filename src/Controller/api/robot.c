@@ -986,7 +986,7 @@ int wb_robot_init() {  // API initialization
 
   const char *WEBOTS_SERVER = getenv("WEBOTS_SERVER");
   char *pipe;
-  if (WEBOTS_SERVER && WEBOTS_SERVER[0])
+  /*if (WEBOTS_SERVER && WEBOTS_SERVER[0])
     pipe = strdup(WEBOTS_SERVER);
   else {
     int trial = 0;
@@ -1024,7 +1024,8 @@ int wb_robot_init() {  // API initialization
       fprintf(stderr, "Cannot connect to Webots: no pipe defined\n");
     free(pipe);
     exit(EXIT_FAILURE);
-  }
+  }*/
+  scheduler_init(pipe);
   free(pipe);
 
   // robot device
