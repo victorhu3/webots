@@ -153,7 +153,7 @@ QT_XML_INCLUDE     = -isystem $(WEBOTS_PATH)/include/qt/QtXml
 FREETYPE_INCLUDE   = -I/mingw64/include/freetype2
 TARGET_PATH       = $(WEBOTS_PATH)/msys64/mingw64/bin
 TARGET            = $(TARGET_PATH)/webots-bin.exe
-CFLAGS            = -isystem /mingw64/lib/libzip/include
+CFLAGS            = -isystem /mingw64/lib/libzip/include -DTCP_IP_SOCKET
 CXXFLAGS          = -std=c++11 -D_USE_MATH_DEFINES
 MOC               = moc
 MOC_FLAGS        += -D_WIN32

@@ -36,7 +36,7 @@ TARGET      = ../../lib/controller/libController.so
 endif
 
 ifeq ($(OSTYPE),windows)
-CFLAGS      = -Wall -mwindows
+CFLAGS      = -Wall -mwindows -DTCP_IP_SOCKET
 INCLUDE     = -I$(WEBOTS_PATH)/include/controller/c -I$(WEBOTS_PATH)/include -I/mingw64/include
 LD_FLAGS    = -shared -mwindows --def Controller.def
 PLATFORM    = win32
